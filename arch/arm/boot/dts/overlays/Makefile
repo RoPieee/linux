@@ -98,6 +98,7 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
 	justboom-digi.dtbo \
 	ltc294x.dtbo \
 	max98357a.dtbo \
+	maxtherm.dtbo \
 	mbed-dac.dtbo \
 	mcp23017.dtbo \
 	mcp23s17.dtbo \
@@ -118,7 +119,9 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
 	ov7251.dtbo \
 	ov9281.dtbo \
 	papirus.dtbo \
+	pca953x.dtbo \
 	pibell.dtbo \
+	pifacedigital.dtbo \
 	piglow.dtbo \
 	piscreen.dtbo \
 	piscreen2r.dtbo \
@@ -159,7 +162,6 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
 	spi-gpio40-45.dtbo \
 	spi-rtc.dtbo \
 	spi0-cs.dtbo \
-	spi0-hw-cs.dtbo \
 	spi1-1cs.dtbo \
 	spi1-2cs.dtbo \
 	spi1-3cs.dtbo \
