@@ -1,0 +1,6 @@
+5.4 fork from Raspberry Pi Foundation
+
+* Changes (besides USB quirks):
+
+- add support for 352k8 and 384k 
+- add Realtek drivers for: 8812AU, 8192EU
