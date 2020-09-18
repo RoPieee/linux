@@ -18,7 +18,8 @@
 #include <rtl8812a_hal.h>
 #ifdef CONFIG_RTL8812A
 #include "hal8812a_fw.h"
-#else
+#endif
+#ifdef CONFIG_RTL8821A
 #include "hal8821a_fw.h"
 #endif
 /* -------------------------------------------------------------------------
@@ -517,11 +518,16 @@ FirmwareDownload8812(
 		#ifdef CONFIG_WOWLAN
 			if (pwrpriv->wowlan_mode) {
 #ifdef CONFIG_RTL8812A
+				if (IS_HARDWARE_TYPE_8812(Adapter)) {
 				pFirmware->szFwBuffer = array_mp_8812a_fw_wowlan;
 				pFirmware->ulFwLength = array_length_mp_8812a_fw_wowlan;
-#else
+				}
+#endif
+#ifdef CONFIG_RTL8821A
+				if (IS_HARDWARE_TYPE_8821(Adapter)) {
 				pFirmware->szFwBuffer = array_mp_8821a_fw_wowlan;
 				pFirmware->ulFwLength = array_length_mp_8821a_fw_wowlan;
+				}
 #endif
 				RTW_INFO("%s fw:%s, size: %d\n", __func__, "WoWLAN", pFirmware->ulFwLength);
 
@@ -531,11 +537,16 @@ FirmwareDownload8812(
 		#ifdef CONFIG_AP_WOWLAN
 			if (pwrpriv->wowlan_ap_mode) {
 #ifdef CONFIG_RTL8812A
+				if (IS_HARDWARE_TYPE_8812(Adapter)) {
 				pFirmware->szFwBuffer = array_mp_8812a_fw_ap;
 				pFirmware->ulFwLength = array_length_mp_8812a_fw_ap;
-#else
+				}
+#endif
+#ifdef CONFIG_RTL8821A
+				if (IS_HARDWARE_TYPE_8821(Adapter)) {
 				pFirmware->szFwBuffer = array_mp_8821a_fw_ap;
 				pFirmware->ulFwLength = array_length_mp_8821a_fw_ap;
+				}
 #endif
 
 				RTW_INFO("%s fw: %s, size: %d\n", __func__, "AP_WoWLAN", pFirmware->ulFwLength);
@@ -546,11 +557,16 @@ FirmwareDownload8812(
 			if (pHalData->EEPROMBluetoothCoexist == _TRUE) {
 
 #ifdef CONFIG_RTL8812A
+				if (IS_HARDWARE_TYPE_8812(pAdapter)) {
 				pFirmware->szFwBuffer = array_mp_8812a_fw_nic_bt;
 				pFirmware->ulFwLength = array_length_mp_8812a_fw_nic_bt;
-#else
+				}
+#endif
+#ifdef CONFIG_RTL8821A
+				if (IS_HARDWARE_TYPE_8821(pAdapter)) {
 				pFirmware->szFwBuffer = array_mp_8821a_fw_nic_bt;
 				pFirmware->ulFwLength = array_length_mp_8821a_fw_nic_bt;
+				}
 #endif
 
 				RTW_INFO("%s fw:%s, size: %d\n", __FUNCTION__, "NIC-BTCOEX", pFirmware->ulFwLength);
@@ -559,11 +575,16 @@ FirmwareDownload8812(
 			{
 
 #ifdef CONFIG_RTL8812A
+				if (IS_HARDWARE_TYPE_8812(Adapter)) {
 				pFirmware->szFwBuffer = array_mp_8812a_fw_nic;
 				pFirmware->ulFwLength = array_length_mp_8812a_fw_nic;
-#else
+				}
+#endif
+#ifdef CONFIG_RTL8821A
+				if (IS_HARDWARE_TYPE_8821(Adapter)) {
 				pFirmware->szFwBuffer = array_mp_8821a_fw_nic;
 				pFirmware->ulFwLength = array_length_mp_8821a_fw_nic;
+				}
 #endif
 
 				RTW_INFO("%s fw:%s, size: %d\n", __FUNCTION__, "NIC", pFirmware->ulFwLength);
@@ -753,7 +774,6 @@ int ReservedPage_Compare(PADAPTER Adapter, PRT_MP_FIRMWARE pFirmware, u32 BTPatc
 
 	for (i = 0; i < lastBTsz; i++)
 		myBTFwBuffer[(BTPatchSize / 8) * 8 + i] = rtw_read8(Adapter, (0x144 + i));
-
 
 	for (i = 0; i < BTPatchSize; i++) {
 		if (myBTFwBuffer[i] != pFirmware->szFwBuffer[i]) {
@@ -1343,7 +1363,7 @@ void Hal_EfuseParseKFreeData_8821A(
 
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 	struct kfree_data_t *kfree_data = &pHalData->kfree_data;
-	u8 pg_pwrtrim = 0xFF, pg_pwrtrim_5g_a = 0xFF, pg_pwrtrim_5g_lb1 = 0xFF,
+	u8 pg_pwrtrim = 0xFF, pg_pwrtrim_5g_a = 0xFF, pg_pwrtrim_5g_lb1 = 0xFF, 
 					pg_pwrtrim_5g_lb2 = 0xFF, pg_pwrtrim_5g_mb1 = 0xFF, pg_pwrtrim_5g_mb2 = 0xFF, pg_pwrtrim_5g_hb = 0xFF, pg_therm = 0xFF;
 
 	if ((Adapter->registrypriv.RegPwrTrimEnable == 1) || !AutoloadFail) {
@@ -5327,7 +5347,7 @@ void GetHwReg8812A(PADAPTER padapter, u8 variable, u8 *pval)
 			*pval = (BIT(0) & val8) ? _TRUE : _FALSE;
 		}
 		break;
-
+		
 	case HW_VAR_AC_PARAM_VO:
 		val32 = rtw_read32(padapter, REG_EDCA_VO_PARAM);
 		pval[0] = val32 & 0xFF;
@@ -5367,7 +5387,7 @@ void GetHwReg8812A(PADAPTER padapter, u8 variable, u8 *pval)
 		#ifdef HAL_EFUSE_MEMORY
 		*pval = pHalData->EfuseHal.BTEfuseUsedPercentage;
 		#endif
-	break;
+	break;	
 	case HW_VAR_EFUSE_BT_BYTES:
 		#ifdef HAL_EFUSE_MEMORY
 		*((u16 *)pval) = pHalData->EfuseHal.BTEfuseUsedBytes;

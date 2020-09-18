@@ -16,11 +16,7 @@
 
 #include <drv_types.h>
 #include <hal_data.h>
-
-#if defined(PLATFORM_LINUX) && defined (PLATFORM_WINDOWS)
-	#error "Shall be Linux or Windows, but not both!\n"
-#endif
-
+#include <net/cfg80211.h>
 
 static u8 P802_1H_OUI[P80211_OUI_LEN] = { 0x00, 0x00, 0xf8 };
 static u8 RFC1042_OUI[P80211_OUI_LEN] = { 0x00, 0x00, 0x00 };
@@ -32,10 +28,8 @@ static void _init_txservq(struct tx_servq *ptxservq)
 	ptxservq->qcnt = 0;
 }
 
-
 void	_rtw_init_sta_xmit_priv(struct sta_xmit_priv *psta_xmitpriv)
 {
-
 
 	_rtw_memset((unsigned char *)psta_xmitpriv, 0, sizeof(struct sta_xmit_priv));
 
@@ -881,9 +875,9 @@ static void update_attrib_vcs_info(_adapter *padapter, struct xmit_frame *pxmitf
 #ifdef CONFIG_WMMPS_STA
 /*
  * update_attrib_trigger_frame_info
- * For Station mode, if a specific TID of driver setting and an AP support uapsd function, the data
+ * For Station mode, if a specific TID of driver setting and an AP support uapsd function, the data 
  * frame with corresponding TID will be a trigger frame when driver is in wmm power saving mode.
- *
+ * 
  * Arguments:
  * @padapter: _adapter pointer.
  * @pattrib: pkt_attrib pointer.
@@ -893,7 +887,7 @@ static void update_attrib_vcs_info(_adapter *padapter, struct xmit_frame *pxmitf
  */
 static void update_attrib_trigger_frame_info(_adapter *padapter, struct pkt_attrib *pattrib) {
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
-	struct pwrctrl_priv 	*pwrpriv = adapter_to_pwrctl(padapter);
+	struct pwrctrl_priv 	*pwrpriv = adapter_to_pwrctl(padapter); 
 	struct qos_priv 	*pqospriv = &pmlmepriv->qospriv;
 	u8 trigger_frame_en = 0;
 
@@ -1561,7 +1555,7 @@ get_sta_info:
 			}
 		}
 	}
-
+	
 	update_attrib_phy_info(padapter, pattrib, psta);
 
 	/* RTW_INFO("%s ==> mac_id(%d)\n",__FUNCTION__,pattrib->mac_id ); */
@@ -1579,7 +1573,7 @@ get_sta_info:
 
 #ifdef CONFIG_WMMPS_STA
 	update_attrib_trigger_frame_info(padapter, pattrib);
-#endif /* CONFIG_WMMPS_STA */
+#endif /* CONFIG_WMMPS_STA */	
 
 	/* pattrib->priority = 5; */ /* force to used VI queue, for testing */
 	pattrib->hw_ssn_sel = pxmitpriv->hw_ssn_seq_no;
@@ -1882,7 +1876,7 @@ s32 rtw_make_wlanhdr(_adapter *padapter , u8 *hdr, struct pkt_attrib *pattrib)
 				/* TBD: temporary set (rspi, eosp) = (0, 1) which means End MPSP */
 				set_rspi(qc, 0);
 				SetEOSP(qc, 1);
-
+				
 				set_mctrl_present(qc, 1);
 			}
 #endif
@@ -2023,7 +2017,9 @@ s32 rtw_txframes_sta_ac_pending(_adapter *padapter, struct pkt_attrib *pattrib)
 
 	}
 
-	return ptxservq->qcnt;
+	if (ptxservq)
+		return ptxservq->qcnt;
+	return 0;
 }
 
 #ifdef CONFIG_TDLS
@@ -3493,11 +3489,7 @@ void rtw_init_xmitframe(struct xmit_frame *pxframe)
 
 #ifdef CONFIG_USB_HCI
 		pxframe->pkt = NULL;
-#ifdef USB_PACKET_OFFSET_SZ
 		pxframe->pkt_offset = (PACKET_OFFSET_SZ / 8);
-#else
-		pxframe->pkt_offset = 1;/* default use pkt_offset to fill tx desc */
-#endif
 
 #ifdef CONFIG_USB_TX_AGGREGATION
 		pxframe->agg_num = 1;
@@ -4417,10 +4409,12 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 	struct xmit_frame		*pmgntframe;
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
 	struct xmit_priv	*pxmitpriv = &(padapter->xmitpriv);
+	struct registry_priv	*pregpriv = &(padapter->registrypriv);
 	unsigned char	*pframe;
 	u8 dummybuf[32];
-	int len = skb->len, rtap_len;
+	int len = skb->len, rtap_len, consume;
 
+	int alloc_tries, alloc_delay;
 
 	rtw_mstat_update(MSTAT_TYPE_SKB, MSTAT_ALLOC_SUCCESS, skb->truesize);
 
@@ -4437,18 +4431,27 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 	if (unlikely(skb->len < rtap_len))
 		goto fail;
 
-	if (rtap_len != 12) {
-		RTW_INFO("radiotap len (should be 14): %d\n", rtap_len);
-		goto fail;
+	len -= sizeof(struct ieee80211_radiotap_header);
+	rtap_len -= sizeof(struct ieee80211_radiotap_header);
+
+	while(rtap_len) {
+		consume = rtap_len > sizeof(dummybuf) ? sizeof(dummybuf) : rtap_len;
+		_rtw_pktfile_read(&pktfile, dummybuf, consume);
+		rtap_len -= consume;
+		len -= consume;
 	}
-	_rtw_pktfile_read(&pktfile, dummybuf, rtap_len-sizeof(struct ieee80211_radiotap_header));
-	len = len - rtap_len;
 #endif
-	pmgntframe = alloc_mgtxmitframe(pxmitpriv);
-	if (pmgntframe == NULL) {
-		rtw_udelay_os(500);
-		goto fail;
+
+	alloc_delay = 100;
+	for (alloc_tries=3; alloc_tries > 0; alloc_tries--) {
+		pmgntframe = alloc_mgtxmitframe(pxmitpriv);
+		if (pmgntframe != NULL)
+			break;
+		rtw_udelay_os(alloc_delay);
+		alloc_delay += alloc_delay/2;
 	}
+	if (pmgntframe == NULL)
+		goto fail;
 
 	_rtw_memset(pmgntframe->buf_addr, 0, WLANHDR_OFFSET + TXDESC_OFFSET);
 	pframe = (u8 *)(pmgntframe->buf_addr) + TXDESC_OFFSET;
@@ -4458,22 +4461,37 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 
 	/* Check DATA/MGNT frames */
 	pwlanhdr = (struct rtw_ieee80211_hdr *)pframe;
-	frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
-	if ((frame_ctl & RTW_IEEE80211_FCTL_FTYPE) == RTW_IEEE80211_FTYPE_DATA) {
+	pattrib = &pmgntframe->attrib;
+	pattrib->injected = _TRUE;
 
-		pattrib = &pmgntframe->attrib;
-		update_monitor_frame_attrib(padapter, pattrib);
+	if (pregpriv->monitor_disable_1m) {
 
-		if (is_broadcast_mac_addr(pwlanhdr->addr3) || is_broadcast_mac_addr(pwlanhdr->addr1))
-			pattrib->rate = MGN_24M;
+		frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
+		if ((frame_ctl & RTW_IEEE80211_FCTL_FTYPE) == RTW_IEEE80211_FTYPE_DATA) {
+
+			update_monitor_frame_attrib(padapter, pattrib);
+
+			if (is_broadcast_mac_addr(pwlanhdr->addr3) || is_broadcast_mac_addr(pwlanhdr->addr1))
+				pattrib->rate = MGN_24M;
+		} else {
+			update_mgntframe_attrib(padapter, pattrib);
+		}
 
 	} else {
 
-		pattrib = &pmgntframe->attrib;
 		update_mgntframe_attrib(padapter, pattrib);
 
+		pattrib->rate = MGN_1M;
+
+		pattrib->ldpc = _FALSE;
+		pattrib->stbc = 0;
+
 	}
-	pattrib->retry_ctrl = _FALSE;
+
+	if (pregpriv->monitor_retransmit)
+		pattrib->retry_ctrl = _TRUE;
+	else
+		pattrib->retry_ctrl = _FALSE;
 	pattrib->pktlen = len;
 	pmlmeext->mgnt_seq = GetSequence(pwlanhdr);
 	pattrib->seqnum = pmlmeext->mgnt_seq;
@@ -4481,6 +4499,8 @@ s32 rtw_monitor_xmit_entry(struct sk_buff *skb, struct net_device *ndev)
 	pattrib->last_txcmdsz = pattrib->pktlen;
 
 	dump_mgntframe(padapter, pmgntframe);
+	pxmitpriv->tx_pkts++;
+	pxmitpriv->tx_bytes += skb->len;
 
 fail:
 	rtw_skb_free(skb);

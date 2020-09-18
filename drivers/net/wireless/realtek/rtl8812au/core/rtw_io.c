@@ -47,10 +47,6 @@ jackson@realtek.com.tw
 #include <drv_types.h>
 #include <hal_data.h>
 
-#if defined(PLATFORM_LINUX) && defined (PLATFORM_WINDOWS)
-	#error "Shall be Linux or Windows, but not both!\n"
-#endif
-
 #if defined(CONFIG_SDIO_HCI) || defined(CONFIG_PLATFORM_RTL8197D)
 	#define rtw_le16_to_cpu(val)		val
 	#define rtw_le32_to_cpu(val)		val
@@ -598,7 +594,7 @@ static bool match_io_sniff_en(_adapter *adapter
 		else
 			mask &= 0x00000000;
 	}
-
+	
 	if ((sniff->type == RTW_IO_SNIFF_TYPE_EN && (mask & val))
 		|| (sniff->type == RTW_IO_SNIFF_TYPE_DIS && (mask & val) != mask)
 	) {

@@ -13,7 +13,6 @@
  *
  *****************************************************************************/
 
-
 #define _OSDEP_SERVICE_C_
 
 #include <drv_types.h>
@@ -26,7 +25,6 @@ atomic_t _malloc_cnt = ATOMIC_INIT(0);
 atomic_t _malloc_size = ATOMIC_INIT(0);
 #endif
 #endif /* DBG_MEMORY_LEAK */
-
 
 #if defined(PLATFORM_LINUX)
 /*
@@ -2390,6 +2388,13 @@ struct net_device *rtw_alloc_etherdev_with_old_priv(int sizeof_priv, void *old_p
 	if (!pnetdev)
 		goto RETURN;
 
+
+	pnetdev->mtu = WLAN_MAX_ETHFRM_LEN;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	pnetdev->min_mtu = WLAN_MIN_ETHFRM_LEN;
+	pnetdev->max_mtu = WLAN_DATA_MAXLEN;
+#endif
+
 	pnpi = netdev_priv(pnetdev);
 	pnpi->priv = old_priv;
 	pnpi->sizeof_priv = sizeof_priv;
@@ -2410,6 +2415,12 @@ struct net_device *rtw_alloc_etherdev(int sizeof_priv)
 #endif
 	if (!pnetdev)
 		goto RETURN;
+
+	pnetdev->mtu = WLAN_MAX_ETHFRM_LEN;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+	pnetdev->min_mtu = WLAN_MIN_ETHFRM_LEN;
+	pnetdev->max_mtu = WLAN_DATA_MAXLEN;
+#endif
 
 	pnpi = netdev_priv(pnetdev);
 
@@ -2817,7 +2828,7 @@ int map_readN(const struct map_t *map, u16 offset, u16 len, u8 *buf)
 			else
 				c_len = seg->sa + seg->len - offset;
 		}
-
+			
 		_rtw_memcpy(c_dst, c_src, c_len);
 	}
 
@@ -3001,7 +3012,7 @@ void dump_blacklist(void *sel, _queue *blist, const char *title)
 	if (rtw_end_of_queue_search(head, list) == _FALSE) {
 		if (title)
 			RTW_PRINT_SEL(sel, "%s:\n", title);
-
+	
 		while (rtw_end_of_queue_search(head, list) == _FALSE) {
 			ent = LIST_CONTAINOR(list, struct blacklist_ent, list);
 			list = get_next(list);

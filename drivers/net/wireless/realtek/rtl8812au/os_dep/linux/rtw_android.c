@@ -663,7 +663,7 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		ret = -ENOMEM;
 		goto exit;
 	}
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0))
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)) || (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(8,0))
 	if (!access_ok(priv_cmd.buf, priv_cmd.total_len)) {
 	#else
 	if (!access_ok(VERIFY_READ, priv_cmd.buf, priv_cmd.total_len)) {
@@ -935,7 +935,7 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = rtw_android_set_aek(net, command, priv_cmd.total_len);
 		break;
 #endif
-
+	
 	case ANDROID_WIFI_CMD_EXT_AUTH_STATUS: {
 		rtw_set_external_auth_status(padapter,
 			command + strlen("EXT_AUTH_STATUS "),
@@ -1080,7 +1080,7 @@ void *wifi_get_country_code(char *ccode)
 	if (!ccode)
 		return NULL;
 	if (wifi_control_data && wifi_control_data->get_country_code)
-		return wifi_control_data->get_country_code(ccode);
+		return wifi_control_data->get_country_code(ccode, 0);
 	return NULL;
 }
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)) */
