@@ -3,4 +3,4 @@
 * Changes (besides USB quirks):
 
 - add support for 352k8 and 384k 
-- add Realtek drivers for: 8812AU, 8192EU
+- add Realtek drivers for: 8812AU, 8192EU, 8723BU, 88X2BU
