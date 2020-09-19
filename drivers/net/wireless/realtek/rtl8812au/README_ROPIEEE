@@ -1,4 +1,4 @@
-This driver comes from: https://github.com/gordboy/rtl8812au-5.6.4.2
+This driver comes from: https://github.com/aircrack-ng/rtl8812au
 
 The 'Makefile' needs to be changed:
 

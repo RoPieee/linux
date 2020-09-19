@@ -223,8 +223,16 @@ enum h2c_cmd {
 #endif /* CONFIG_WOWLAN */
 
 /* _RSVDPAGE_LOC_CMD_0x00 */
-#define SET_H2CCMD_RSVDPAGE_LOC_PROBE_RSP(__pH2CCmd, __Value)		SET_BITS_TO_LE_1BYTE(__pH2CCmd, 0, 8, __Value)
-#define SET_H2CCMD_RSVDPAGE_LOC_PSPOLL(__pH2CCmd, __Value)			SET_BITS_TO_LE_1BYTE((__pH2CCmd)+1, 0, 8, __Value)
+static inline void SET_H2CCMD_RSVDPAGE_LOC_PROBE_RSP(u8 *__pH2CCmd, u8 __Value)
+{
+	*__pH2CCmd = __Value;
+}
+
+static inline void SET_H2CCMD_RSVDPAGE_LOC_PSPOLL(u8 *__pH2CCmd, u8 __Value)
+{
+	*(__pH2CCmd + 1) = __Value;
+}
+
 #define SET_H2CCMD_RSVDPAGE_LOC_NULL_DATA(__pH2CCmd, __Value)		SET_BITS_TO_LE_1BYTE((__pH2CCmd)+2, 0, 8, __Value)
 #define SET_H2CCMD_RSVDPAGE_LOC_QOS_NULL_DATA(__pH2CCmd, __Value)	SET_BITS_TO_LE_1BYTE((__pH2CCmd)+3, 0, 8, __Value)
 #define SET_H2CCMD_RSVDPAGE_LOC_BT_QOS_NULL_DATA(__pH2CCmd, __Value)SET_BITS_TO_LE_1BYTE((__pH2CCmd)+4, 0, 8, __Value)
@@ -398,7 +406,7 @@ s32 rtw_hal_customer_str_write(_adapter *adapter, const u8 *cs);
 #define SET_H2CCMD_MCC_CTRL_V2_PRIMARY_CH(__pH2CCmd, __Value)	SET_BITS_TO_LE_1BYTE((__pH2CCmd)+2, 0, 4, __Value)
 #define SET_H2CCMD_MCC_CTRL_V2_BW(__pH2CCmd, __Value)			SET_BITS_TO_LE_1BYTE((__pH2CCmd)+2, 4, 4, __Value)
 #define SET_H2CCMD_MCC_CTRL_V2_DURATION(__pH2CCmd, __Value)	SET_BITS_TO_LE_1BYTE((__pH2CCmd)+3, 0, 8, __Value)
-#define SET_H2CCMD_MCC_CTRL_V2_ROLE(__pH2CCmd, __Value)			SET_BITS_TO_LE_1BYTE((__pH2CCmd)+4, 0, 3, __Value)
+#define SET_H2CCMD_MCC_CTRL_V2_ROLE(__pH2CCmd, __Value)			SET_BITS_TO_LE_1BYTE((__pH2CCmd)+4, 0, 3, __Value)			
 #define SET_H2CCMD_MCC_CTRL_V2_INCURCH(__pH2CCmd, __Value)		SET_BITS_TO_LE_1BYTE((__pH2CCmd)+4, 3, 1, __Value)
 #define SET_H2CCMD_MCC_CTRL_V2_DIS_SW_RETRY(__pH2CCmd, __Value)	SET_BITS_TO_LE_1BYTE((__pH2CCmd)+4, 4, 1, __Value)
 #define SET_H2CCMD_MCC_CTRL_V2_DISTXNULL(__pH2CCmd, __Value)		SET_BITS_TO_LE_1BYTE((__pH2CCmd)+4, 5, 1, __Value)

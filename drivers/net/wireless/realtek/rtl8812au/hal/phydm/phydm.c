@@ -489,9 +489,11 @@ void phydm_hw_setting(struct dm_struct *dm)
 		odm_hw_setting_8821a(dm);
 #endif
 
+#if 0 /* TODO: implementation done but may not work and do nothing with current flags. Commenting the code to match previous version behavior*/
 #if (RTL8814A_SUPPORT == 1)
 	if (dm->support_ic_type & ODM_RTL8814A)
 		phydm_hwsetting_8814a(dm);
+#endif
 #endif
 
 #if (RTL8822B_SUPPORT == 1)
@@ -2080,10 +2082,6 @@ void odm_cmn_info_init(struct dm_struct *dm, enum odm_cmninfo cmn_info,
 
 	case ODM_CMNINFO_INTERFACE:
 		dm->support_interface = (u8)value;
-		break;
-
-	case ODM_CMNINFO_MP_TEST_CHIP:
-		dm->is_mp_chip = (u8)value;
 		break;
 
 	case ODM_CMNINFO_IC_TYPE:
