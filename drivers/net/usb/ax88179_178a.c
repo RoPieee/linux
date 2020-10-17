@@ -2825,7 +2825,7 @@ static int ax88179_resume(struct usb_interface *intf)
 	struct ax_device *axdev = usb_get_intfdata(intf);
 	int ret;
 
-	mutex_lock(&axdev->control);
+mutex_lock(&axdev->control);
 
 	if (test_bit(AX_SELECTIVE_SUSPEND, &axdev->flags))
 		ret = ax_runtime_resume(axdev);
