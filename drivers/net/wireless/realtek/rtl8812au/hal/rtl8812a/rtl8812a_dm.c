@@ -30,6 +30,31 @@
 /* ************************************************************
  * Global var
  * ************************************************************ */
+
+static VOID
+dm_CheckProtection(
+	IN	PADAPTER	Adapter
+)
+{
+#if 0
+	PMGNT_INFO		pMgntInfo = &(Adapter->MgntInfo);
+	u1Byte			CurRate, RateThreshold;
+
+	if (pMgntInfo->pHTInfo->bCurBW40MHz)
+		RateThreshold = MGN_MCS1;
+	else
+		RateThreshold = MGN_MCS3;
+
+	if (Adapter->TxStats.CurrentInitTxRate <= RateThreshold) {
+		pMgntInfo->bDmDisableProtect = TRUE;
+		DbgPrint("Forced disable protect: %x\n", Adapter->TxStats.CurrentInitTxRate);
+	} else {
+		pMgntInfo->bDmDisableProtect = FALSE;
+		DbgPrint("Enable protect: %x\n", Adapter->TxStats.CurrentInitTxRate);
+	}
+#endif
+}
+
 #ifdef CONFIG_SUPPORT_HW_WPS_PBC
 static void dm_CheckPbcGPIO(_adapter *padapter)
 {
@@ -104,9 +129,9 @@ static void dm_CheckPbcGPIO(_adapter *padapter)
  *
  *	Created by Roger, 2010.03.05.
  *   */
-void
+VOID
 dm_InterruptMigration(
-		PADAPTER	Adapter
+	IN	PADAPTER	Adapter
 )
 {
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
@@ -114,7 +139,6 @@ dm_InterruptMigration(
 	BOOLEAN			bCurrentIntMt, bCurrentACIntDisable;
 	BOOLEAN			IntMtToSet = _FALSE;
 	BOOLEAN			ACIntToSet = _FALSE;
-
 
 	/* Retrieve current interrupt migration and Tx four ACs IMR settings first. */
 	bCurrentIntMt = pHalData->bInterruptMigration;
@@ -125,7 +149,7 @@ dm_InterruptMigration(
 	/* when interrupt migration is set before. 2010.03.05. */
 	/*  */
 	if (!Adapter->registrypriv.wifi_spec &&
-	    (check_fwstate(pmlmepriv, WIFI_ASOC_STATE) == _TRUE) &&
+	    (check_fwstate(pmlmepriv, _FW_LINKED) == _TRUE) &&
 	    pmlmepriv->LinkDetectInfo.bHigherBusyTraffic) {
 		IntMtToSet = _TRUE;
 
@@ -177,10 +201,9 @@ dm_InterruptMigration(
 /*
  * Initialize GPIO setting registers
  *   */
-#ifdef CONFIG_USB_HCI
 static void
 dm_InitGPIOSetting(
-		PADAPTER	Adapter
+	IN	PADAPTER	Adapter
 )
 {
 	PHAL_DATA_TYPE		pHalData = GET_HAL_DATA(Adapter);
@@ -192,7 +215,7 @@ dm_InitGPIOSetting(
 
 	rtw_write8(Adapter, REG_GPIO_MUXCFG, tmp1byte);
 }
-#endif
+
 /* ************************************************************
  * functions
  * ************************************************************ */
@@ -224,7 +247,7 @@ static void Init_ODM_ComInfo_8812(PADAPTER	Adapter)
 
 void
 rtl8812_InitHalDm(
-		PADAPTER	Adapter
+	IN	PADAPTER	Adapter
 )
 {
 	PHAL_DATA_TYPE	pHalData = GET_HAL_DATA(Adapter);
@@ -237,10 +260,9 @@ rtl8812_InitHalDm(
 	/* Adapter->fix_rate = 0xFF; */
 }
 
-
-void
+VOID
 rtl8812_HalDmWatchDog(
-		PADAPTER	Adapter
+	IN	PADAPTER	Adapter
 )
 {
 	BOOLEAN		bFwCurrentInPSMode = _FALSE;
@@ -272,6 +294,7 @@ rtl8812_HalDmWatchDog(
 		/*  */
 		/* Dynamically switch RTS/CTS protection. */
 		/*  */
+		/* dm_CheckProtection(Adapter); */
 
 #ifdef CONFIG_PCI_HCI
 		/* 20100630 Joseph: Disable Interrupt Migration mechanism temporarily because it degrades Rx throughput. */
@@ -304,7 +327,7 @@ skip_dm:
 	return;
 }
 
-void rtl8812_init_dm_priv(PADAPTER Adapter)
+void rtl8812_init_dm_priv(IN PADAPTER Adapter)
 {
 	PHAL_DATA_TYPE	pHalData = GET_HAL_DATA(Adapter);
 	struct dm_struct		*podmpriv = &pHalData->odmpriv;
@@ -324,9 +347,11 @@ void rtl8812_init_dm_priv(PADAPTER Adapter)
 
 	Init_ODM_ComInfo_8812(Adapter);
 	odm_init_all_timers(podmpriv);
+
+	pHalData->CurrentTxPwrIdx = 20;
 }
 
-void rtl8812_deinit_dm_priv(PADAPTER Adapter)
+void rtl8812_deinit_dm_priv(IN PADAPTER Adapter)
 {
 	PHAL_DATA_TYPE	pHalData = GET_HAL_DATA(Adapter);
 	struct dm_struct		*podmpriv = &pHalData->odmpriv;

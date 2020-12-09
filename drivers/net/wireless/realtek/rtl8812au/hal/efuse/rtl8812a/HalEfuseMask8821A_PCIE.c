@@ -24,7 +24,7 @@
 *                           MPCIE.TXT
 ******************************************************************************/
 
-u8 Array_MP_8821A_MPCIE[] = {
+u1Byte Array_MP_8821A_MPCIE[] = {
 	0xFF,
 	0xF3,
 	0xEF,
@@ -37,7 +37,7 @@ u8 Array_MP_8821A_MPCIE[] = {
 	0x00,
 	0x00,
 	0x0F,
-	0xF3,
+	0xF1,
 	0xFF,
 	0xFF,
 	0xFF,
@@ -59,25 +59,25 @@ u8 Array_MP_8821A_MPCIE[] = {
 	0x00,
 };
 
-u16
-EFUSE_GetArrayLen_MP_8821A_MPCIE(void)
+u2Byte
+EFUSE_GetArrayLen_MP_8821A_MPCIE(VOID)
 {
-	return sizeof(Array_MP_8821A_MPCIE) / sizeof(u8);
+	return sizeof(Array_MP_8821A_MPCIE) / sizeof(u1Byte);
 }
 
-void
+VOID
 EFUSE_GetMaskArray_MP_8821A_MPCIE(
-		u8 *Array
+	IN	OUT pu1Byte Array
 )
 {
-	u16 len = EFUSE_GetArrayLen_MP_8821A_MPCIE(), i = 0;
+	u2Byte len = EFUSE_GetArrayLen_MP_8821A_MPCIE(), i = 0;
 
 	for (i = 0; i < len; ++i)
 		Array[i] = Array_MP_8821A_MPCIE[i];
 }
 BOOLEAN
 EFUSE_IsAddressMasked_MP_8821A_MPCIE(
-		u16 Offset
+	IN   u2Byte  Offset
 )
 {
 	int r = Offset / 16;

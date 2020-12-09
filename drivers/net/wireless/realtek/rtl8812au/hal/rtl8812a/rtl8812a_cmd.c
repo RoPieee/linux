@@ -582,18 +582,20 @@ void rtl8812_set_FwJoinBssReport_cmd(PADAPTER padapter, u8 mstatus)
 		rtl8812_download_rsvd_page(padapter, RT_MEDIA_CONNECT);
 }
 
-static void
+static VOID
 C2HTxBeamformingHandler_8812(
-		PADAPTER		Adapter,
-		u8				*CmdBuf,
-		u8				CmdLen
+	IN	PADAPTER		Adapter,
+	IN	u8				*CmdBuf,
+	IN	u8				CmdLen
 )
 {
 	u8	status = CmdBuf[0] & BIT0;
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
 	struct dm_struct		*pDM_Odm = &pHalData->odmpriv;
 
-#ifdef CONFIG_BEAMFORMING /*PHYDM_BF - (BEAMFORMING_SUPPORT == 1)*/
+#ifdef CONFIG_BEAMFORMING
+
+#if (BEAMFORMING_SUPPORT == 1)
 	struct _RT_BEAMFORMING_INFO	*p_beam_info = &pDM_Odm->beamforming_info;
 	struct _RT_SOUNDING_INFO		*pSoundInfo = &(p_beam_info->sounding_info);
 
@@ -604,14 +606,21 @@ C2HTxBeamformingHandler_8812(
 		RTW_INFO("SOUNDING_SW_VHT_TIMER\n");
 		phydm_beamforming_end_sw(pDM_Odm, status);
 	}
+#else /*(BEAMFORMING_SUPPORT == 0) - drv beamforming*/
+	beamforming_check_sounding_success(Adapter, status);
+#if (0)/*#ifdef CONFIG_PCI_HCI*/
+	beamforming_end_fw(Adapter, status);
+#endif
+#endif
+
 #endif /*#ifdef CONFIG_BEAMFORMING*/
 }
 
-static void
+static VOID
 C2HTxFeedbackHandler_8812(
-		PADAPTER	Adapter,
-		u8			*CmdBuf,
-		u8			CmdLen
+	IN	PADAPTER	Adapter,
+	IN	u8			*CmdBuf,
+	IN	u8			CmdLen
 )
 {
 #ifdef CONFIG_XMIT_ACK
@@ -639,6 +648,7 @@ s32 c2h_handler_8812a(_adapter *adapter, u8 id, u8 seq, u8 plen, u8 *payload)
 		break;
 	}
 
+exit:
 	return ret;
 }
 
@@ -682,7 +692,7 @@ static void rtl8812_set_FwAoacRsvdPage_cmd(PADAPTER padapter, PRSVDPAGE_LOC rsvd
 #ifdef CONFIG_PNO_SUPPORT
 	RTW_INFO("NLO_INFO=%d\n", rsvdpageloc->LocPNOInfo);
 #endif
-	if (check_fwstate(pmlmepriv, WIFI_ASOC_STATE)) {
+	if (check_fwstate(pmlmepriv, _FW_LINKED)) {
 		SET_H2CCMD_AOAC_RSVDPAGE_LOC_REMOTE_WAKE_CTRL_INFO(u1H2CAoacRsvdPageParm, rsvdpageloc->LocRemoteCtrlInfo);
 		SET_H2CCMD_AOAC_RSVDPAGE_LOC_ARP_RSP(u1H2CAoacRsvdPageParm, rsvdpageloc->LocArpRsp);
 		/* SET_H2CCMD_AOAC_RSVDPAGE_LOC_NEIGHBOR_ADV(u1H2CAoacRsvdPageParm, rsvdpageloc->LocNbrAdv); */
@@ -703,7 +713,7 @@ static void rtl8812_set_FwAoacRsvdPage_cmd(PADAPTER padapter, PRSVDPAGE_LOC rsvd
 
 #ifdef CONFIG_PNO_SUPPORT
 	if (!MLME_IS_AP(padapter) && !MLME_IS_MESH(padapter) &&
-	    !check_fwstate(pmlmepriv, WIFI_ASOC_STATE) &&
+	    !check_fwstate(pmlmepriv, _FW_LINKED) &&
 	    pwrpriv->wowlan_in_resume == _FALSE) {
 
 		res = rtw_read8(padapter, 0x1b8);
@@ -827,7 +837,7 @@ static void SetFwRsvdPagePkt_BTCoex(PADAPTER padapter)
 	}
 
 	RTW_INFO("%s: Set RSVD page location to Fw ,TotalPacketLen(%d), TotalPageNum(%d)\n", __FUNCTION__, TotalPacketLen, TotalPageNum);
-	if (check_fwstate(pmlmepriv, WIFI_ASOC_STATE)) {
+	if (check_fwstate(pmlmepriv, _FW_LINKED)) {
 		rtl8812_set_FwRsvdPage_cmd(padapter, &RsvdPageLoc);
 #ifdef CONFIG_WOWLAN
 		rtl8812_set_FwAoacRsvdPage_cmd(padapter, &RsvdPageLoc);

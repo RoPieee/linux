@@ -17,15 +17,15 @@
 *                           MSDIO.TXT
 ******************************************************************************/
 
-u16
-EFUSE_GetArrayLen_MP_8821A_MSDIO(void);
+u2Byte
+EFUSE_GetArrayLen_MP_8821A_MSDIO(VOID);
 
-void
+VOID
 EFUSE_GetMaskArray_MP_8821A_MSDIO(
-		u8 *Array
+	IN	OUT pu1Byte Array
 );
 
 BOOLEAN
 EFUSE_IsAddressMasked_MP_8821A_MSDIO(/* TC: Test Chip, MP: MP Chip */
-		u16 Offset
+	IN   u2Byte  Offset
 );
