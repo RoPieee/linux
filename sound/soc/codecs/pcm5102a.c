@@ -12,7 +12,7 @@
 
 #include <sound/soc.h>
 
-truct pcm5102a_priv {
+struct pcm5102a_priv {
 	bool rates_384k;
 };
 
