@@ -620,7 +620,7 @@ int dwc_otg_hcd_urb_dequeue(dwc_otg_hcd_t * hcd,
 				if (hcd->fiq_state->channel[n].fsm == FIQ_HS_ISOC_TURBO ||
 				    hcd->fiq_state->channel[n].fsm == FIQ_HS_ISOC_SLEEPING)
 					hcd->fiq_state->channel[n].fsm = FIQ_HS_ISOC_ABORTED;
-+				fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
+				fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
 
 				if (dwc_qh_is_non_per(qh)) {
 					do {
