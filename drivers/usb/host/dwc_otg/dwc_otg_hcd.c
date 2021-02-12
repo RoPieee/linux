@@ -2535,7 +2535,7 @@ static void process_non_periodic_channels(dwc_otg_hcd_t * hcd)
 void dwc_otg_hcd_queue_transactions(dwc_otg_hcd_t * hcd,
 				    dwc_otg_transaction_type_e tr_type)
 {
-	unisgned long flags;
+	unsigned long flags;
 #ifdef DEBUG_SOF
 	DWC_DEBUGPL(DBG_HCD, "Queue Transactions\n");
 #endif
