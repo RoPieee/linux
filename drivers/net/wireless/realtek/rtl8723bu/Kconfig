@@ -1,6 +1,11 @@
 config RTL8723BU
 	tristate "Realtek 8723B USB WiFi"
 	depends on USB
+<<<<<<< HEAD
 	help
 	  Help message of RTL8723BU
 
+=======
+	---help---
+	  Help message of RTL8723BU
+>>>>>>> 5348aeca9c21 (Implement driver from https://github.com/lwfinger/rtl8723bu)
