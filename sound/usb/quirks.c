@@ -1751,6 +1751,7 @@ u64 snd_usb_interface_dsd_format_quirks(struct snd_usb_audio *chip,
 	case USB_ID(0x139f, 0x5504): /* Nagra DAC */
 	case USB_ID(0x20b1, 0x3008): /* iFi Audio micro/nano iDSD */
 	case USB_ID(0x1511, 0x0037): /* AURALiC VEGA */
+	case USB_ID(0x1511, 0x0064): /* AURALiC ALTAIR G2.1 */
 	case USB_ID(0x20b1, 0x0002): /* Wyred 4 Sound DAC-2 DSD */
 	case USB_ID(0x20b1, 0x2004): /* Matrix Audio X-SPDIF 2 */
 	case USB_ID(0x20b1, 0x2008): /* Matrix Audio X-Sabre */
