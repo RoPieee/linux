@@ -204,8 +204,7 @@
 #include "bcm2711-rpi.dtsi"
 #include "bcm283x-rpi-csi0-2lane.dtsi"
 #include "bcm283x-rpi-csi1-4lane.dtsi"
-#include "bcm283x-rpi-i2c0mux_0_44.dtsi"
-#include "bcm283x-rpi-cam1-regulator.dtsi"
+#include "bcm283x-rpi-i2c0mux_0_28.dtsi"
 
 /delete-node/ &hdmi1;
 
@@ -435,6 +434,16 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&audio_pins>;
 	brcm,disable-headphones = <1>;
+};
+
+&cam1_reg {
+	gpio = <&gpio 2 GPIO_ACTIVE_HIGH>;
+	status = "disabled";
+};
+
+cam0_reg: &cam0_regulator {
+	gpio = <&gpio 30 GPIO_ACTIVE_HIGH>;
+	status = "disabled";
 };
 
 / {
