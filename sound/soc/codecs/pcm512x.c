@@ -535,6 +535,7 @@ static unsigned long pcm512x_ncp_target(struct pcm512x_priv *pcm512x,
 static const u32 pcm512x_dai_rates[] = {
 	8000, 11025, 16000, 22050, 32000, 44100, 48000, 64000,
 	88200, 96000, 176400, 192000, 352800, 384000,
+	705600, 768000
 };
 
 static const struct snd_pcm_hw_constraint_list constraints_slave = {
@@ -566,7 +567,7 @@ static int pcm512x_hw_rule_rate(struct snd_pcm_hw_params *params,
 		ranges[0].min = 8000;
 		ranges[0].max = pcm512x_sck_max(pcm512x) / frame_size / 2;
 		ranges[1].min = DIV_ROUND_UP(16000000, frame_size);
-		ranges[1].max = 384000;
+		ranges[1].max = 768000;
 		break;
 	default:
 		return -EINVAL;
@@ -1139,8 +1140,10 @@ static int pcm512x_set_dividers(struct snd_soc_dai *dai,
 		fssp = PCM512x_FSSP_96KHZ;
 	else if (sample_rate <= pcm512x_dac_max(pcm512x, 192000))
 		fssp = PCM512x_FSSP_192KHZ;
-	else
+	else if (sample_rate <= pcm512x_dac_max(pcm512x, 384000))
 		fssp = PCM512x_FSSP_384KHZ;
+	else
+		fssp = PCM512x_FSSP_768KHZ;
 	ret = regmap_update_bits(pcm512x->regmap, PCM512x_FS_SPEED_MODE,
 				 PCM512x_FSSP, fssp);
 	if (ret != 0) {
@@ -1458,7 +1461,7 @@ static struct snd_soc_dai_driver pcm512x_dai = {
 		.channels_max = 2,
 		.rates = SNDRV_PCM_RATE_CONTINUOUS,
 		.rate_min = 8000,
-		.rate_max = 384000,
+		.rate_max = 768000,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE |
 			   SNDRV_PCM_FMTBIT_S24_LE |
 			   SNDRV_PCM_FMTBIT_S32_LE

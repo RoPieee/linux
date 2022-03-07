@@ -175,12 +175,13 @@
 #define PCM512x_RQSY_HALT   (1 << 0)
 
 /* Page 0, Register 34 - fs speed mode */
-#define PCM512x_FSSP        (3 << 0)
+#define PCM512x_FSSP        (4 << 0)
 #define PCM512x_FSSP_SHIFT  0
 #define PCM512x_FSSP_48KHZ  (0 << 0)
 #define PCM512x_FSSP_96KHZ  (1 << 0)
 #define PCM512x_FSSP_192KHZ (2 << 0)
 #define PCM512x_FSSP_384KHZ (3 << 0)
+#define PCM512x_FSSP_768KHZ (4 << 0)
 
 /* Page 0, Register 37 - Error detection */
 #define PCM512x_IPLK (1 << 0)
