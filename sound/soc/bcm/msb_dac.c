@@ -158,6 +158,7 @@ static int snd_rpi_hifiberry_dacplus_clk_for_rate(int sample_rate)
 	case 88200:
 	case 176400:
 	case 352800:
+	case 705600:
 		type = HIFIBERRY_DACPRO_CLK44EN;
 		break;
 	default:
@@ -359,8 +360,8 @@ SND_SOC_DAILINK_DEFS(rpi_hifiberry_dacplus,
 
 static struct snd_soc_dai_link snd_rpi_hifiberry_dacplus_dai[] = {
 {
-	.name		= "HiFiBerry DAC+",
-	.stream_name	= "HiFiBerry DAC+ HiFi",
+	.name		= "MSB DAC",
+	.stream_name	= "MSB DAC HiFi",
 	.dai_fmt	= SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
 				SND_SOC_DAIFMT_CBS_CFS,
 	.ops		= &snd_rpi_hifiberry_dacplus_ops,
@@ -533,7 +534,7 @@ MODULE_DEVICE_TABLE(of, snd_rpi_hifiberry_dacplus_of_match);
 
 static struct platform_driver snd_rpi_hifiberry_dacplus_driver = {
 	.driver = {
-		.name   = "snd-rpi-hifiberry-dacplus",
+		.name   = "snd-rpi-msb-dac",
 		.owner  = THIS_MODULE,
 		.of_match_table = snd_rpi_hifiberry_dacplus_of_match,
 	},
