@@ -9,16 +9,13 @@ EXTRA_CFLAGS += -Wno-implicit-fallthrough
 EXTRA_CFLAGS += -Wno-cast-function-type
 #EXTRA_CFLAGS += -Wno-error=cast-function-type
 #EXTRA_CFLAGS += -Wno-parentheses-equality
+EXTRA_CFLAGS += -Wno-error=incompatible-pointer-types
+EXTRA_CFLAGS += -Wno-stringop-overread
 #EXTRA_CFLAGS += -Wno-pointer-bool-conversion
 EXTRA_CFLAGS += -Wno-unknown-pragmas
 #EXTRA_CFLAGS += -Wno-unused
 EXTRA_CFLAGS += -Wno-address
 EXTRA_CFLAGS += -Wno-vla -g
-
-#GCC_VER_49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | bc )
-#ifeq ($(GCC_VER_49),1)
-#EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
-#endif
 
 EXTRA_CFLAGS += -I$(src)/include -I$(srctree)/$(src)/include
 EXTRA_CFLAGS += -I$(src)/hal/phydm -I$(srctree)/$(src)/hal/phydm
@@ -101,7 +98,7 @@ CONFIG_MP_VHT_HW_TX_MODE = n
 CONFIG_PLATFORM_I386_PC = n
 CONFIG_PLATFORM_ANDROID_ARM64 = n
 CONFIG_PLATFORM_ARM_RPI = n
-CONFIG_PLATFORM_ARM64_RPI = y
+CONFIG_PLATFORM_ARM64_RPI = n
 CONFIG_PLATFORM_ARM_NV_NANO = n
 CONFIG_PLATFORM_ANDROID_X86 = n
 CONFIG_PLATFORM_ANDROID_INTEL_X86 = n
@@ -659,7 +656,7 @@ endif
 ifeq ($(CONFIG_PLATFORM_I386_PC), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
-SUBARCH := $(shell uname -m | sed -e "s/i.86/i386/; s/ppc/powerpc/; s/armv.l/arm/; s/aarch64/arm64/;")
+SUBARCH := $(shell uname -m | sed -e "s/i.86/i386/; s/ppc/powerpc/; s/armv.l/arm/; s/aarch64/arm64/; s/riscv.*/riscv/;")
 ARCH ?= $(SUBARCH)
 CROSS_COMPILE ?=
 KVER  ?= $(shell if [ -n "${NEW_VERSION}" ] && [ -n "${FLAVOR}" ]; then echo "${NEW_VERSION}-${FLAVOR}"; else uname -r; fi)
@@ -856,6 +853,8 @@ EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC -DCONFIG_RADIO_WORK
 #EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
 EXTRA_CFLAGS += -DCONFIG_P2P_IPS
+# A special rule for cfg80211_connect_bss() to receive all 10 arguments in an Android build
+EXTRA_CFLAGS += -DCONFIG_CFG80211_CONNECT_BSS_ANDROID
 endif
 
 ifeq ($(CONFIG_PLATFORM_ANDROID_X86), y)
@@ -869,7 +868,6 @@ endif
 
 ifeq ($(CONFIG_PLATFORM_ANDROID_INTEL_X86), y)
 EXTRA_CFLAGS += -DCONFIG_PLATFORM_ANDROID_INTEL_X86
-EXTRA_CFLAGS += -DCONFIG_PLATFORM_INTEL_BYT
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
