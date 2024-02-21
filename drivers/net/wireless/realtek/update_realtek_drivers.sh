@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#set -x
 _update_realtek_driver() {
    local chipset=$1
    local url=$2
@@ -13,13 +14,16 @@ _update_realtek_driver() {
    tmpdir=$( mktemp -d /tmp/realtekXXXXX )
    echo "cloning $url in $tmpdir..."
    git clone $url $tmpdir
+
+   # remove old stuff, and copy over new stuff
+   rm -rf $chipset/*
    cp -rp $tmpdir/* $chipset
 
 }
 
 # rtl8192eu
 _update_realtek_driver rtl8192eu 'https://github.com/Mange/rtl8192eu-linux-driver'
-sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = y'/ rtl8192eu/Makefile
+sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = n'/ rtl8192eu/Makefile
 sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n'/ rtl8192eu/Makefile
 
 # rtl8723bu
@@ -36,9 +40,9 @@ _EOF_
 
 # rtl8812au
 _update_realtek_driver rtl8812au 'https://github.com/aircrack-ng/rtl8812au'
-sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n'/    rtl8812au/Makefile
-sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = n'/    rtl8812au/Makefile
-sed -i 's/CONFIG_PLATFORM_ARM64_RPI = .*/CONFIG_PLATFORM_ARM64_RPI = y' rtl8812au/Makefile
+sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n'/     rtl8812au/Makefile
+sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = n'/     rtl8812au/Makefile
+sed -i 's/CONFIG_PLATFORM_ARM64_RPI = n/CONFIG_PLATFORM_ARM64_RPI = n'/ rtl8812au/Makefile
 
 # rtl88x2bu
 _update_realtek_driver rtl88x2bu 'https://github.com/cilynx/rtl88x2bu'
