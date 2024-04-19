@@ -1925,6 +1925,7 @@ u64 snd_usb_interface_dsd_format_quirks(struct snd_usb_audio *chip,
 	case USB_ID(0x2bb1, 0x3086): /* Singxer F-1 converter board */
 	case USB_ID(0x3148, 0x0077): /* Cyrus QXR */
 	case USB_ID(0x6b42, 0x0042): /* MSB Technology */
+	case USB_ID(0x6b42, 0x0043): /* MSB Technology Pro USB */
 		if (fp->altsetting == 3)
 			return SNDRV_PCM_FMTBIT_DSD_U32_BE;
 		break;
