@@ -1,3 +1,7 @@
+# Pending Deprecation
+
+A few versions ago (around 6.4 IIRC), rtw88x2bu support has been added to the mainline Linux kernel.  This repo will be maintained until we either receive a few comments on https://github.com/cilynx/rtl88x2bu/issues/270 that the mainline driver is working well or [MaxG87](https://github.com/MaxG87) and [cilynx](https://github.com/cilynx) agree that no feedback means no one is still using this driver and we make the executive decision to archive it.
+
 # Administrative Note
 
 As of upstream version 5.6.1, I'm moving away from individual repositories for each upstream version in favor of a single repository with version-based branches.  Hopefully, this will help with clutter and URL consistency moving forward.  The archived repositories are available here:
@@ -27,7 +31,8 @@ Build confirmed on:
 * Linux version `6.5.5` (self compiled) on Debian Bookworm
 * Linux version `6.6.1` (self compiled) on Debian Bookworm
 * Linux version `6.7.2` (self compiled) on Debian Bookworm and Ubuntu 22.04
-* Linux version `6.8.0` (self compiled) on Debian Bookworm
+* Linux version `6.8.8` (self compiled) on Debian Trixie
+* Linux version `6.9.0` (self compiled) on Debian Trixie
 
 ## Using and Installing the Driver
 
@@ -49,20 +54,25 @@ intervention, only execute it if you understand what the script does.
 
 ### Unknown Symbol Errors
 
-Some users reported problems due to `Unknown symbol in module`. This can be
-caused by old deployments of the driver still being present in the systems
-directories. One solution reported was to forcefully remove all old driver
-modules:
+Some users reported problems due to `Unknown symbol in module`. A likely cause
+of this is that the cfg80211 module is not present in the Kernel. You can fix
+this by running it:
+
+    sudo modprobe cfg80211
+
+
+Another reported cause was that old deployments of the driver were still
+present in the system directories. One reported solution was to forcibly remove
+all old driver modules. **This is a drastic measure. It may prevent you from
+using other external WiFi adapters.** See [this
+issue](https://github.com/cilynx/rtl88x2bu/issues/249) for more information.
+
+If you want to proceed anyways, you can run the following commands:
 
     sudo dkms remove rtl88x2bu/5.8.7.4 --all
     find /lib/modules -name cfg80211.ko -ls
     sudo rm -f /lib/modules/*/updates/net/wireless/cfg80211.ko
 
-
-This can also be caused by cfg80211 module not being present in the kernel.
-You can remedy this by running:
-
-    sudo modprobe cfg80211
 
 ### Linux 5.18+ and RTW88 Driver
 
