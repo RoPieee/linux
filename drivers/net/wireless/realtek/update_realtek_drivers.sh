@@ -40,10 +40,10 @@ config RTL8723BU
 _EOF_
 
 # rtl8812au
-_update_realtek_driver rtl8812au 'https://github.com/aircrack-ng/rtl8812au'
-sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n'/     rtl8812au/Makefile
-sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = n'/     rtl8812au/Makefile
-sed -i 's/CONFIG_PLATFORM_ARM64_RPI = n/CONFIG_PLATFORM_ARM64_RPI = n'/ rtl8812au/Makefile
+#_update_realtek_driver rtl8812au 'https://github.com/aircrack-ng/rtl8812au'
+#sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n'/     rtl8812au/Makefile
+#sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = n'/     rtl8812au/Makefile
+#sed -i 's/CONFIG_PLATFORM_ARM64_RPI = n/CONFIG_PLATFORM_ARM64_RPI = n'/ rtl8812au/Makefile
 
 # rtl88x2bu
 _update_realtek_driver rtl88x2bu 'https://github.com/cilynx/rtl88x2bu'
@@ -57,4 +57,7 @@ config RTL8822BU
 	  RTL88X2BU driver updated for current kernels.
 
 _EOF_
+
+# 8821au-20210708
+_update_realtek_driver rtl8821au 'https://github.com/morrownr/8821au-20210708'
 
