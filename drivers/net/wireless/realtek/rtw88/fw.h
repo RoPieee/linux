@@ -29,6 +29,8 @@
 #define BCN_FILTER_CONNECTION_LOSS	1
 #define BCN_FILTER_CONNECTED		2
 #define BCN_FILTER_NOTIFY_BEACON_LOSS	3
+#define RTW_DEFAULT_CQM_THOLD		-70
+#define RTW_DEFAULT_CQM_HYST		4
 
 #define SCAN_NOTIFY_TIMEOUT  msecs_to_jiffies(10)
 
@@ -43,6 +45,8 @@
 #define RTW_PRI_CH_IDX			1
 #define RTW_OLD_PROBE_PG_CNT		2
 #define RTW_PROBE_PG_CNT		4
+
+#define RTW_DEBUG_DUMP_TIMES		10
 
 enum rtw_c2h_cmd_id {
 	C2H_CCX_TX_RPT = 0x03,
@@ -808,6 +812,7 @@ static inline bool rtw_fw_feature_ext_check(struct rtw_fw_state *fw,
 	return !!(fw->feature_ext & feature);
 }
 
+void rtw_fw_dump_dbg_info(struct rtw_dev *rtwdev);
 void rtw_fw_c2h_cmd_rx_irqsafe(struct rtw_dev *rtwdev, u32 pkt_offset,
 			       struct sk_buff *skb);
 void rtw_fw_c2h_cmd_handle(struct rtw_dev *rtwdev, struct sk_buff *skb);
@@ -831,8 +836,12 @@ void rtw_fw_coex_query_hid_info(struct rtw_dev *rtwdev, u8 sub_id, u8 data);
 
 void rtw_fw_bt_wifi_control(struct rtw_dev *rtwdev, u8 op_code, u8 *data);
 void rtw_fw_send_rssi_info(struct rtw_dev *rtwdev, struct rtw_sta_info *si);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 void rtw_fw_send_ra_info(struct rtw_dev *rtwdev, struct rtw_sta_info *si,
 			 bool reset_ra_mask);
+#else
+void rtw_fw_send_ra_info(struct rtw_dev *rtwdev, struct rtw_sta_info *si);
+#endif
 void rtw_fw_media_status_report(struct rtw_dev *rtwdev, u8 mac_id, bool conn);
 void rtw_fw_update_wl_phy_info(struct rtw_dev *rtwdev);
 void rtw_fw_beacon_filter_config(struct rtw_dev *rtwdev, bool connect,

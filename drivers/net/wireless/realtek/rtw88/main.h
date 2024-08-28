@@ -5,17 +5,71 @@
 #ifndef __RTK_MAIN_H_
 #define __RTK_MAIN_H_
 
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
+#include "compiler.h"
+#endif
 #include <net/mac80211.h>
 #include <linux/vmalloc.h>
 #include <linux/firmware.h>
 #include <linux/average.h>
 #include <linux/bitops.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 #include <linux/bitfield.h>
+#else
+#include "bitfield.h"
+#endif
 #include <linux/iopoll.h>
 #include <linux/interrupt.h>
 #include <linux/workqueue.h>
 
 #include "util.h"
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
+#include <linux/etherdevice.h>
+#endif
+
+#if !defined(RHEL_RELEASE_CODE)
+#define RHEL_RELEASE_CODE 0
+#define RHEL_RELEASE_VERSION(a, b) a<<8 & b
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
+/**
+ * cfg80211_ssid_eq - compare two SSIDs
+ * @a: first SSID
+ * @b: second SSID
+ *
+ * Return: %true if SSIDs are equal, %false otherwise.
+ */
+static inline bool
+cfg80211_ssid_eq(struct cfg80211_ssid *a, struct cfg80211_ssid *b)
+{
+       if (WARN_ON(!a || !b))
+               return false;
+       if (a->ssid_len != b->ssid_len)
+               return false;
+       return memcmp(a->ssid, b->ssid, a->ssid_len) ? false : true;
+}
+
+#endif
+
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)) || defined(RHEL_RELEASE) && (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(8,0))
+/* see Documentation/timers/timers-howto.rst for the thresholds */
+static inline void fsleep(unsigned long usecs)
+{
+        if (usecs <= 10)
+                udelay(usecs);
+        else if (usecs <= 20000)
+                usleep_range(usecs, 2 * usecs);
+        else
+                msleep(DIV_ROUND_UP(usecs, 1000));
+}
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
+#define NUM_NL80211_BANDS IEEE80211_NUM_BANDS
+#endif
 
 #define RTW_MAX_MAC_ID_NUM		32
 #define RTW_MAX_SEC_CAM_NUM		32
@@ -39,6 +93,65 @@
 #define HW_FEATURE_LEN			13
 
 #define RTW_TP_SHIFT			18 /* bytes/2s --> Mbps */
+
+#ifndef read_poll_timeout
+#define read_poll_timeout(op, val, cond, sleep_us, timeout_us, \
+                                sleep_before_read, args...) \
+({ \
+        u64 __timeout_us = (timeout_us); \
+        unsigned long __sleep_us = (sleep_us); \
+        ktime_t __timeout = ktime_add_us(ktime_get(), __timeout_us); \
+        might_sleep_if((__sleep_us) != 0); \
+        if (sleep_before_read && __sleep_us) \
+                usleep_range((__sleep_us >> 2) + 1, __sleep_us); \
+        for (;;) { \
+                (val) = op(args); \
+                if (cond) \
+                        break; \
+                if (__timeout_us && \
+                    ktime_compare(ktime_get(), __timeout) > 0) { \
+                        (val) = op(args); \
+                        break; \
+                } \
+                if (__sleep_us) \
+                        usleep_range((__sleep_us >> 2) + 1, __sleep_us); \
+        } \
+        (cond) ? 0 : -ETIMEDOUT; \
+})
+#endif
+
+#if !defined(IEEE80211_AMPDU_TX_START_IMMEDIATE)
+#define IEEE80211_AMPDU_TX_START_IMMEDIATE 1
+#endif
+
+#if !defined(fallthrough)
+#define fallthrough do {} while (0)
+#endif
+
+#ifndef read_poll_timeout_atomic
+#define read_poll_timeout_atomic(op, val, cond, delay_us, timeout_us, \
+                                        delay_before_read, args...) \
+({ \
+        u64 __timeout_us = (timeout_us); \
+        unsigned long __delay_us = (delay_us); \
+        ktime_t __timeout = ktime_add_us(ktime_get(), __timeout_us); \
+        if (delay_before_read && __delay_us) \
+                udelay(__delay_us); \
+        for (;;) { \
+                (val) = op(args); \
+                if (cond) \
+                        break; \
+                if (__timeout_us && \
+                    ktime_compare(ktime_get(), __timeout) > 0) { \
+                        (val) = op(args); \
+                        break; \
+                } \
+                if (__delay_us) \
+                        udelay(__delay_us); \
+        } \
+        (cond) ? 0 : -ETIMEDOUT; \
+})
+#endif
 
 extern bool rtw_bf_support;
 extern bool rtw_disable_lps_deep_mode;
@@ -187,6 +300,9 @@ enum rtw_chip_type {
 	RTW_CHIP_TYPE_8822C,
 	RTW_CHIP_TYPE_8723D,
 	RTW_CHIP_TYPE_8821C,
+	RTW_CHIP_TYPE_8703B,
+	RTW_CHIP_TYPE_8821A,
+	RTW_CHIP_TYPE_8812A,
 };
 
 enum rtw_tx_queue_type {
@@ -342,8 +458,10 @@ enum rtw_regulatory_domains {
 	RTW_REGD_UKRAINE	= 7,
 	RTW_REGD_MEXICO		= 8,
 	RTW_REGD_CN		= 9,
-	RTW_REGD_WW,
+	RTW_REGD_QATAR		= 10,
+	RTW_REGD_UK		= 11,
 
+	RTW_REGD_WW,
 	RTW_REGD_MAX
 };
 
@@ -520,6 +638,12 @@ struct rtw_channel_params {
 struct rtw_hw_reg {
 	u32 addr;
 	u32 mask;
+};
+
+struct rtw_hw_reg_desc {
+	u32 addr;
+	u32 mask;
+	const char *desc;
 };
 
 struct rtw_ltecoex_addr {
@@ -831,6 +955,8 @@ struct rtw_regd {
 };
 
 struct rtw_chip_ops {
+	int (*power_on)(struct rtw_dev *rtwdev);
+	void (*power_off)(struct rtw_dev *rtwdev);
 	int (*mac_init)(struct rtw_dev *rtwdev);
 	int (*dump_fw_crash)(struct rtw_dev *rtwdev);
 	void (*shutdown)(struct rtw_dev *rtwdev);
@@ -879,6 +1005,7 @@ struct rtw_chip_ops {
 	void (*fill_txdesc_checksum)(struct rtw_dev *rtwdev,
 				     struct rtw_tx_pkt_info *pkt_info,
 				     u8 *txdesc);
+	void (*rx_aggregation)(struct rtw_dev *rtwdev, bool enable);
 
 	/* for coex */
 	void (*coex_set_init)(struct rtw_dev *rtwdev);
@@ -1087,16 +1214,19 @@ struct rtw_rfe_def {
 	const struct rtw_table *phy_pg_tbl;
 	const struct rtw_table *txpwr_lmt_tbl;
 	const struct rtw_table *agc_btg_tbl;
+	const struct rtw_pwr_track_tbl *pwr_track_tbl;
 };
 
-#define RTW_DEF_RFE(chip, bb_pg, pwrlmt) {				  \
+#define RTW_DEF_RFE(chip, bb_pg, pwrlmt, track) {				  \
 	.phy_pg_tbl = &rtw ## chip ## _bb_pg_type ## bb_pg ## _tbl,	  \
 	.txpwr_lmt_tbl = &rtw ## chip ## _txpwr_lmt_type ## pwrlmt ## _tbl, \
+	.pwr_track_tbl = &rtw ## chip ## _pwr_track_type ## track ## _tbl, \
 	}
 
-#define RTW_DEF_RFE_EXT(chip, bb_pg, pwrlmt, btg) {			  \
+#define RTW_DEF_RFE_EXT(chip, bb_pg, pwrlmt, track, btg) {			  \
 	.phy_pg_tbl = &rtw ## chip ## _bb_pg_type ## bb_pg ## _tbl,	  \
 	.txpwr_lmt_tbl = &rtw ## chip ## _txpwr_lmt_type ## pwrlmt ## _tbl, \
+	.pwr_track_tbl = &rtw ## chip ## _pwr_track_type ## track ## _tbl, \
 	.agc_btg_tbl = &rtw ## chip ## _agc_btg_type ## btg ## _tbl, \
 	}
 
@@ -1174,7 +1304,7 @@ struct rtw_chip_info {
 	u32 fw_rxff_size;
 	u16 rsvd_drv_pg_num;
 	u8 band;
-	u8 page_size;
+	u16 page_size;
 	u8 csi_buf_pg_num;
 	u8 dig_max;
 	u8 dig_min;
@@ -1187,6 +1317,11 @@ struct rtw_chip_info {
 
 	u16 fw_fifo_addr[RTW_FW_FIFO_MAX];
 	const struct rtw_fwcd_segs *fwcd_segs;
+
+	u8 usb_tx_agg_desc_num;
+	bool hw_feature_report;
+	u8 c2h_ra_report_size;
+	bool old_datarate_fb_limit;
 
 	u8 default_1ss_tx_path;
 
@@ -1225,7 +1360,6 @@ struct rtw_chip_info {
 	u16 dpd_ratemask;
 	u8 iqk_threshold;
 	u8 lck_threshold;
-	const struct rtw_pwr_track_tbl *pwr_track_tbl;
 
 	u8 bfer_su_max_num;
 	u8 bfer_mu_max_num;
@@ -1474,6 +1608,7 @@ struct rtw_coex_stat {
 	u8 bt_hid_slot;
 	u8 bt_a2dp_bitpool;
 	u8 bt_iqk_state;
+	u8 bt_disable_cnt;
 
 	u16 wl_beacon_interval;
 	u8 wl_noisy_level;
@@ -1692,11 +1827,13 @@ struct rtw_dm_info {
 	s8 delta_power_index[RTW_RF_PATH_MAX];
 	s8 delta_power_index_last[RTW_RF_PATH_MAX];
 	u8 default_ofdm_index;
+	u8 default_cck_index;
 	bool pwr_trk_triggered;
 	bool pwr_trk_init_trigger;
 	struct ewma_thermal avg_thermal[RTW_RF_PATH_MAX];
 	s8 txagc_remnant_cck;
-	s8 txagc_remnant_ofdm;
+	s8 txagc_remnant_ofdm[RTW_RF_PATH_MAX];
+	u8 rx_cck_agc_report_type;
 
 	/* backup dack results for each path and I/Q */
 	u32 dack_adck[RTW_RF_PATH_MAX];
@@ -1743,6 +1880,7 @@ struct rtw_efuse {
 	u8 country_code[2];
 	u8 rf_board_option;
 	u8 rfe_option;
+	u8 rfe_option_full;
 	u8 power_track_type;
 	u8 thermal_meter[RTW_RF_PATH_MAX];
 	u8 thermal_meter_k;
@@ -1771,6 +1909,8 @@ struct rtw_efuse {
 	/* bt share antenna with wifi */
 	bool share_ant;
 	u8 bt_setting;
+
+	u8 usb_mode_switch;
 
 	struct {
 		u8 hci;
@@ -1814,6 +1954,20 @@ struct rtw_phy_cond {
 	#define BRANCH_ELIF	1
 	#define BRANCH_ELSE	2
 	#define BRANCH_ENDIF	3
+};
+
+struct rtw_phy_cond2 {
+#ifdef __LITTLE_ENDIAN
+	u8 type_glna;
+	u8 type_gpa;
+	u8 type_alna;
+	u8 type_apa;
+#else
+	u8 type_apa;
+	u8 type_alna;
+	u8 type_gpa;
+	u8 type_glna;
+#endif
 };
 
 struct rtw_fifo_conf {
@@ -1897,6 +2051,7 @@ struct rtw_hal {
 	u8 oem_id;
 	u8 pkg_type;
 	struct rtw_phy_cond phy_cond;
+	struct rtw_phy_cond2 phy_cond2;
 	bool rfe_btg;
 
 	u8 ps_mode;
@@ -1919,6 +2074,7 @@ struct rtw_hal {
 	u32 antenna_rx;
 	u8 bfee_sts_cap;
 	bool txrx_1ss;
+	bool cck_high_power;
 
 	/* protect tx power section */
 	struct mutex tx_power_mutex;
@@ -2082,18 +2238,6 @@ static inline struct ieee80211_vif *rtwvif_to_vif(struct rtw_vif *rtwvif)
 	return container_of(p, struct ieee80211_vif, drv_priv);
 }
 
-static inline bool rtw_ssid_equal(struct cfg80211_ssid *a,
-				  struct cfg80211_ssid *b)
-{
-	if (!a || !b || a->ssid_len != b->ssid_len)
-		return false;
-
-	if (memcmp(a->ssid, b->ssid, a->ssid_len))
-		return false;
-
-	return true;
-}
-
 static inline void rtw_chip_efuse_grant_on(struct rtw_dev *rtwdev)
 {
 	if (rtwdev->chip->ops->efuse_grant)
@@ -2167,7 +2311,11 @@ void rtw_set_channel(struct rtw_dev *rtwdev);
 void rtw_chip_prepare_tx(struct rtw_dev *rtwdev);
 void rtw_vif_port_config(struct rtw_dev *rtwdev, struct rtw_vif *rtwvif,
 			 u32 config);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+void rtw_tx_report_purge_timer(void *ctx);
+#else
 void rtw_tx_report_purge_timer(struct timer_list *t);
+#endif
 void rtw_update_sta_info(struct rtw_dev *rtwdev, struct rtw_sta_info *si,
 			 bool reset_ra_mask);
 void rtw_core_scan_start(struct rtw_dev *rtwdev, struct rtw_vif *rtwvif,
@@ -2175,6 +2323,7 @@ void rtw_core_scan_start(struct rtw_dev *rtwdev, struct rtw_vif *rtwvif,
 void rtw_core_scan_complete(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
 			    bool hw_scan);
 int rtw_core_start(struct rtw_dev *rtwdev);
+void rtw_power_off(struct rtw_dev *rtwdev);
 void rtw_core_stop(struct rtw_dev *rtwdev);
 int rtw_chip_info_setup(struct rtw_dev *rtwdev);
 int rtw_core_init(struct rtw_dev *rtwdev);
@@ -2189,6 +2338,8 @@ int rtw_sta_add(struct rtw_dev *rtwdev, struct ieee80211_sta *sta,
 void rtw_sta_remove(struct rtw_dev *rtwdev, struct ieee80211_sta *sta,
 		    bool fw_exist);
 void rtw_fw_recovery(struct rtw_dev *rtwdev);
+int rtw_wait_firmware_completion(struct rtw_dev *rtwdev);
+int rtw_power_on(struct rtw_dev *rtwdev);
 void rtw_core_fw_scan_notify(struct rtw_dev *rtwdev, bool start);
 int rtw_dump_fw(struct rtw_dev *rtwdev, const u32 ocp_src, u32 size,
 		u32 fwcd_item);
@@ -2200,4 +2351,19 @@ void rtw_update_channel(struct rtw_dev *rtwdev, u8 center_channel,
 void rtw_core_port_switch(struct rtw_dev *rtwdev, struct ieee80211_vif *vif);
 bool rtw_core_check_sta_active(struct rtw_dev *rtwdev);
 void rtw_core_enable_beacon(struct rtw_dev *rtwdev, bool enable);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0)
+static inline bool rtw_ssid_equal(struct cfg80211_ssid *a,
+                                 struct cfg80211_ssid *b)
+{
+       if (!a || !b || a->ssid_len != b->ssid_len)
+               return false;
+
+       if (memcmp(a->ssid, b->ssid, a->ssid_len))
+               return false;
+
+       return true;
+}
 #endif
+
+#endif
+
