@@ -12,5 +12,5 @@ obj-$(CONFIG_RTW89)		+= rtw89/
 obj-$(CONFIG_RTL8192EU)		+= rtl8192eu/
 obj-$(CONFIG_RTL8723BU)		+= rtl8723bu/
 obj-$(CONFIG_RTL8822BU)		+= rtl88x2bu/
-obj-$(CONFIG_RTL8812AU)		+= rtl8812au/
+obj-$(CONFIG_88XXAU)		+= rtl8812au/
 obj-$(CONFIG_RTL8821AU)		+= rtl8821au/
