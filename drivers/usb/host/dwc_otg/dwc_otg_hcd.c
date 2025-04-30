@@ -300,6 +300,7 @@ static int32_t dwc_otg_hcd_start_cb(void *p)
  */
 static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 {
+	unsigned long flags;
 	gintsts_data_t intr;
 	dwc_otg_hcd_t *dwc_otg_hcd = p;
 
@@ -310,8 +311,7 @@ static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 	dwc_otg_hcd->flags.b.port_connect_status_change = 1;
 	dwc_otg_hcd->flags.b.port_connect_status = 0;
 	if(fiq_enable) {
-		local_fiq_disable();
-		fiq_fsm_spin_lock(&dwc_otg_hcd->fiq_state->lock);
+		fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
 	}
 	/*
 	 * Shutdown any transfers in process by clearing the Tx FIFO Empty
@@ -390,8 +390,7 @@ static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 	}
 
 	if(fiq_enable) {
-		fiq_fsm_spin_unlock(&dwc_otg_hcd->fiq_state->lock);
-		local_fiq_enable();
+		fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
 	}
 
 	if (dwc_otg_hcd->fops->disconnect) {
@@ -615,15 +614,13 @@ int dwc_otg_hcd_urb_dequeue(dwc_otg_hcd_t * hcd,
 				int running = 0;
 				enum fiq_fsm_state state;
 
-				local_fiq_disable();
-				fiq_fsm_spin_lock(&hcd->fiq_state->lock);
+				fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
 				qh->channel->halt_status = DWC_OTG_HC_XFER_URB_DEQUEUE;
 				qh->channel->halt_pending = 1;
 				if (hcd->fiq_state->channel[n].fsm == FIQ_HS_ISOC_TURBO ||
 				    hcd->fiq_state->channel[n].fsm == FIQ_HS_ISOC_SLEEPING)
 					hcd->fiq_state->channel[n].fsm = FIQ_HS_ISOC_ABORTED;
-				fiq_fsm_spin_unlock(&hcd->fiq_state->lock);
-				local_fiq_enable();
+				fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
 
 				if (dwc_qh_is_non_per(qh)) {
 					do {
