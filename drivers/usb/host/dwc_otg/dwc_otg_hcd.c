@@ -311,7 +311,7 @@ static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 	dwc_otg_hcd->flags.b.port_connect_status_change = 1;
 	dwc_otg_hcd->flags.b.port_connect_status = 0;
 	if(fiq_enable) {
-		fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
+		fiq_fsm_spin_lock_irqsave(&dwc_otg_hcd->fiq_state->lock, flags);
 	}
 	/*
 	 * Shutdown any transfers in process by clearing the Tx FIFO Empty
@@ -556,6 +556,7 @@ int dwc_otg_hcd_urb_dequeue(dwc_otg_hcd_t * hcd,
 {
 	dwc_otg_qh_t *qh;
 	dwc_otg_qtd_t *urb_qtd;
+	unsigned long flags;
 	BUG_ON(!hcd);
 	BUG_ON(!dwc_otg_urb);
 
