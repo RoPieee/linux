@@ -390,7 +390,7 @@ static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 	}
 
 	if(fiq_enable) {
-		fiq_fsm_spin_unlock_irqrestore(&dwc_ot_hcd->fiq_state->lock, flags);
+		fiq_fsm_spin_unlock_irqrestore(&dwc_otg_hcd->fiq_state->lock, flags);
 	}
 
 	if (dwc_otg_hcd->fops->disconnect) {
