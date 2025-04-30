@@ -300,7 +300,6 @@ static int32_t dwc_otg_hcd_start_cb(void *p)
  */
 static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 {
-	unsigned long flags;
 	gintsts_data_t intr;
 	dwc_otg_hcd_t *dwc_otg_hcd = p;
 
@@ -311,7 +310,8 @@ static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 	dwc_otg_hcd->flags.b.port_connect_status_change = 1;
 	dwc_otg_hcd->flags.b.port_connect_status = 0;
 	if(fiq_enable) {
-		fiq_fsm_spin_lock_irqsave(&dwc_otg_hcd->fiq_state->lock, flags);
+		local_fiq_disable();
+		fiq_fsm_spin_lock(&dwc_otg_hcd->fiq_state->lock);
 	}
 	/*
 	 * Shutdown any transfers in process by clearing the Tx FIFO Empty
@@ -390,7 +390,8 @@ static int32_t dwc_otg_hcd_disconnect_cb(void *p)
 	}
 
 	if(fiq_enable) {
-		fiq_fsm_spin_unlock_irqrestore(&dwc_otg_hcd->fiq_state->lock, flags);
+		fiq_fsm_spin_unlock(&dwc_otg_hcd->fiq_state->lock);
+		local_fiq_enable();
 	}
 
 	if (dwc_otg_hcd->fops->disconnect) {
@@ -556,7 +557,6 @@ int dwc_otg_hcd_urb_dequeue(dwc_otg_hcd_t * hcd,
 {
 	dwc_otg_qh_t *qh;
 	dwc_otg_qtd_t *urb_qtd;
-	unsigned long flags;
 	BUG_ON(!hcd);
 	BUG_ON(!dwc_otg_urb);
 
@@ -615,13 +615,15 @@ int dwc_otg_hcd_urb_dequeue(dwc_otg_hcd_t * hcd,
 				int running = 0;
 				enum fiq_fsm_state state;
 
-				fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
+				local_fiq_disable();
+				fiq_fsm_spin_lock(&hcd->fiq_state->lock);
 				qh->channel->halt_status = DWC_OTG_HC_XFER_URB_DEQUEUE;
 				qh->channel->halt_pending = 1;
 				if (hcd->fiq_state->channel[n].fsm == FIQ_HS_ISOC_TURBO ||
 				    hcd->fiq_state->channel[n].fsm == FIQ_HS_ISOC_SLEEPING)
 					hcd->fiq_state->channel[n].fsm = FIQ_HS_ISOC_ABORTED;
-				fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
+				fiq_fsm_spin_unlock(&hcd->fiq_state->lock);
+				local_fiq_enable();
 
 				if (dwc_qh_is_non_per(qh)) {
 					do {
@@ -1463,10 +1465,12 @@ static void assign_and_init_hc(dwc_otg_hcd_t * hcd, dwc_otg_qh_t * qh)
 
 	dwc_otg_hc_init(hcd->core_if, hc);
 
-	if (fiq_enable)
-		fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
-	else
-		local_irq_save(flags);
+	local_irq_save(flags);
+
+	if (fiq_enable) {
+		local_fiq_disable();
+		fiq_fsm_spin_lock(&hcd->fiq_state->lock);
+	}
 
 	/* Enable the top level host channel interrupt. */
 	intr_enable = (1 << hc->hc_num);
@@ -1476,11 +1480,12 @@ static void assign_and_init_hc(dwc_otg_hcd_t * hcd, dwc_otg_qh_t * qh)
 	gintmsk.b.hcintr = 1;
 	DWC_MODIFY_REG32(&hcd->core_if->core_global_regs->gintmsk, 0, gintmsk.d32);
 
-	if (fiq_enable)
-		fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
-	else
-		local_irq_restore(flags);
+	if (fiq_enable) {
+		fiq_fsm_spin_unlock(&hcd->fiq_state->lock);
+		local_fiq_enable();
+	}
 
+	local_irq_restore(flags);
 	hc->qh = qh;
 }
 
@@ -1705,7 +1710,6 @@ static int fiq_fsm_queue_isoc_transaction(dwc_otg_hcd_t *hcd, dwc_otg_qh_t *qh)
 	int xfer_len, nrpackets;
 	hcdma_data_t hcdma;
 	hfnum_data_t hfnum;
-	unsigned long flags;
 
 	if (st->fsm != FIQ_PASSTHROUGH)
 		return 0;
@@ -1781,7 +1785,8 @@ static int fiq_fsm_queue_isoc_transaction(dwc_otg_hcd_t *hcd, dwc_otg_qh_t *qh)
 	fiq_print(FIQDBG_INT, hcd->fiq_state, "%08x", st->hctsiz_copy.d32);
 	fiq_print(FIQDBG_INT, hcd->fiq_state, "%08x", st->hcdma_copy.d32);
 	hfnum.d32 = DWC_READ_REG32(&hcd->core_if->host_if->host_global_regs->hfnum);
-	fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
+	local_fiq_disable();
+	fiq_fsm_spin_lock(&hcd->fiq_state->lock);
 	DWC_WRITE_REG32(&hc_regs->hctsiz, st->hctsiz_copy.d32);
 	DWC_WRITE_REG32(&hc_regs->hcsplt, st->hcsplt_copy.d32);
 	DWC_WRITE_REG32(&hc_regs->hcdma, st->hcdma_copy.d32);
@@ -1801,7 +1806,8 @@ static int fiq_fsm_queue_isoc_transaction(dwc_otg_hcd_t *hcd, dwc_otg_qh_t *qh)
 	}
 	mb();
 	st->hcchar_copy.b.chen = 0;
-	fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
+	fiq_fsm_spin_unlock(&hcd->fiq_state->lock);
+	local_fiq_enable();
 	return 0;
 }
 
@@ -1827,7 +1833,6 @@ static int fiq_fsm_queue_split_transaction(dwc_otg_hcd_t *hcd, dwc_otg_qh_t *qh)
 	/* Program HC registers, setup FIQ_state, examine FIQ if periodic, start transfer (not if uframe 5) */
 	int hub_addr, port_addr, frame, uframe;
 	struct fiq_channel_state *st = &hcd->fiq_state->channel[hc->hc_num];
-	unsigned long flags;
 
 	/*
 	 * Non-periodic channel assignments stay in the non_periodic_active queue.
@@ -1948,7 +1953,8 @@ static int fiq_fsm_queue_split_transaction(dwc_otg_hcd_t *hcd, dwc_otg_qh_t *qh)
 	DWC_WRITE_REG32(&hc_regs->hcchar, st->hcchar_copy.d32);
 	DWC_WRITE_REG32(&hc_regs->hcintmsk, st->hcintmsk_copy.d32);
 
-	fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
+	local_fiq_disable();
+	fiq_fsm_spin_lock(&hcd->fiq_state->lock);
 
 	if (hc->ep_type & 0x1) {
 		hfnum.d32 = DWC_READ_REG32(&hcd->core_if->host_if->host_global_regs->hfnum);
@@ -2058,7 +2064,8 @@ static int fiq_fsm_queue_split_transaction(dwc_otg_hcd_t *hcd, dwc_otg_qh_t *qh)
 		DWC_WRITE_REG32(&hc_regs->hcchar, st->hcchar_copy.d32);
 	}
 	mb();
-	fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
+	fiq_fsm_spin_unlock(&hcd->fiq_state->lock);
+	local_fiq_enable();
 	return 0;
 }
 
@@ -2539,7 +2546,6 @@ static void process_non_periodic_channels(dwc_otg_hcd_t * hcd)
 void dwc_otg_hcd_queue_transactions(dwc_otg_hcd_t * hcd,
 				    dwc_otg_transaction_type_e tr_type)
 {
-	unsigned long flags;
 #ifdef DEBUG_SOF
 	DWC_DEBUGPL(DBG_HCD, "Queue Transactions\n");
 #endif
@@ -2565,9 +2571,11 @@ void dwc_otg_hcd_queue_transactions(dwc_otg_hcd_t * hcd,
 			gintmsk.b.nptxfempty = 1;
 
 			if (fiq_enable) {
-				fiq_fsm_spin_lock_irqsave(&hcd->fiq_state->lock, flags);
+				local_fiq_disable();
+				fiq_fsm_spin_lock(&hcd->fiq_state->lock);
 				DWC_MODIFY_REG32(&hcd->core_if->core_global_regs->gintmsk, gintmsk.d32, 0);
-				fiq_fsm_spin_unlock_irqrestore(&hcd->fiq_state->lock, flags);
+				fiq_fsm_spin_unlock(&hcd->fiq_state->lock);
+				local_fiq_enable();
 			} else {
 				DWC_MODIFY_REG32(&hcd->core_if->core_global_regs->gintmsk, gintmsk.d32, 0);
 			}
